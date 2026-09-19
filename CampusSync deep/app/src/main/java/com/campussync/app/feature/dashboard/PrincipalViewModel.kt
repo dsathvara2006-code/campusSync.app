@@ -157,6 +157,22 @@ class PrincipalViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun deleteEvent(
+        collegeId: String,
+        eventId: String,
+        onResult: (Result<Unit>) -> Unit
+    ) {
+        _isLoading.value = true
+        viewModelScope.launch {
+            val result = repository.deleteEvent(collegeId, eventId)
+            if (result.isSuccess) {
+                loadDashboardStats(collegeId)
+            }
+            _isLoading.value = false
+            onResult(result)
+        }
+    }
+
     fun createStudentInvite(
         email: String,
         name: String,

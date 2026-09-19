@@ -6,6 +6,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -850,7 +851,16 @@ fun PrincipalDashboardContent(
         // ── 8. Academic Events & Calendar ────
         PrincipalEventsWidget(
             events = upcomingEvents,
-            onAddEventClick = { showAddEventDialog = true }
+            onAddEventClick = { showAddEventDialog = true },
+            onDeleteEventClick = { event ->
+                principalViewModel.deleteEvent(user.collegeId, event.eventId) { result ->
+                    result.onSuccess {
+                        android.widget.Toast.makeText(context, "Event removed from schedule", android.widget.Toast.LENGTH_SHORT).show()
+                    }.onFailure { err ->
+                        android.widget.Toast.makeText(context, "Failed to remove event: ${err.message}", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
         )
         Spacer(Modifier.height(40.dp))
     }
@@ -1017,7 +1027,16 @@ fun AdminDashboardContent(
         // ── 7. Academic Events & Calendar ────
         PrincipalEventsWidget(
             events = upcomingEvents,
-            onAddEventClick = { showAddEventDialog = true }
+            onAddEventClick = { showAddEventDialog = true },
+            onDeleteEventClick = { event ->
+                principalViewModel.deleteEvent(user.collegeId, event.eventId) { result ->
+                    result.onSuccess {
+                        android.widget.Toast.makeText(context, "Event removed from schedule", android.widget.Toast.LENGTH_SHORT).show()
+                    }.onFailure { err ->
+                        android.widget.Toast.makeText(context, "Failed to remove event: ${err.message}", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
         )
         Spacer(Modifier.height(40.dp))
     }
@@ -1722,34 +1741,256 @@ private fun UpcomingEventsSection(events: List<com.campussync.app.core.model.Eve
 }
 
 @Composable
-private fun AddEventDialog(isLoading: Boolean, onDismiss: () -> Unit, onSubmit: (title: String, desc: String, date: Long) -> Unit) {
+private fun AddEventDialog(
+    isLoading: Boolean,
+    onDismiss: () -> Unit,
+    onSubmit: (title: String, desc: String, date: Long) -> Unit
+) {
     var title by remember { mutableStateOf("") }
     var desc by remember { mutableStateOf("") }
-    var daysFromNow by remember { mutableStateOf("1") }
+    var selectedCategory by remember { mutableStateOf("Academic & Exam") }
+    var selectedDaysOffset by remember { mutableStateOf(1) }
+    var venue by remember { mutableStateOf("") }
+    var audience by remember { mutableStateOf("All Campus") }
+    var showCustomDays by remember { mutableStateOf(false) }
+
+    val categories = listOf(
+        "Academic & Exam" to Icons.Rounded.School,
+        "Cultural Fest" to Icons.Rounded.Celebration,
+        "Sports Meet" to Icons.Rounded.EmojiEvents,
+        "Holiday" to Icons.Rounded.WbSunny,
+        "Workshop" to Icons.Rounded.CoPresent,
+        "Notice" to Icons.Rounded.Campaign
+    )
+
+    val datePresets = listOf(
+        "Tomorrow" to 1,
+        "In 3 Days" to 3,
+        "This Weekend" to 5,
+        "In 1 Week" to 7,
+        "In 2 Weeks" to 14,
+        "In 1 Month" to 30
+    )
+
+    val audiences = listOf("All Campus", "Students Only", "Faculty Only")
 
     AlertDialog(
         onDismissRequest = { if (!isLoading) onDismiss() },
-        shape = RoundedCornerShape(22.dp),
-        title = { Text("Schedule Event", fontWeight = FontWeight.ExtraBold) },
+        shape = RoundedCornerShape(26.dp),
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Primary.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.EventAvailable,
+                        contentDescription = null,
+                        tint = Primary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text("Schedule Campus Event", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("Notify students & staff across campus", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Event Title") }, placeholder = { Text("e.g. Annual Tech Fest") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp))
-                OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), minLines = 2)
-                OutlinedTextField(value = daysFromNow, onValueChange = { if (it.all { c -> c.isDigit() }) daysFromNow = it }, label = { Text("Days from today") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // Category Chips
+                Column {
+                    Text("Event Type", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        categories.forEach { (cat, icon) ->
+                            val isSelected = selectedCategory == cat
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isSelected) Primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .clickable { selectedCategory = cat }
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                        tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        text = cat,
+                                        fontSize = 12.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Event Title
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Event Title *") },
+                    placeholder = { Text("e.g. Mid-Term Semester Examinations") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    singleLine = true
+                )
+
+                // Date Presets
+                Column {
+                    Text("When is it taking place?", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        datePresets.forEach { (label, days) ->
+                            val isSelected = !showCustomDays && selectedDaysOffset == days
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isSelected) Primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .clickable {
+                                        showCustomDays = false
+                                        selectedDaysOffset = days
+                                    }
+                            ) {
+                                Text(
+                                    text = label,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Venue & Location
+                OutlinedTextField(
+                    value = venue,
+                    onValueChange = { venue = it },
+                    label = { Text("Venue / Location (Optional)") },
+                    placeholder = { Text("e.g. Main Auditorium / Ground / Room 402") },
+                    leadingIcon = { Icon(Icons.Rounded.Place, contentDescription = null, tint = Primary) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    singleLine = true
+                )
+
+                // Audience Selector
+                Column {
+                    Text("Audience", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        audiences.forEach { aud ->
+                            val isSelected = audience == aud
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isSelected) Primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                border = if (isSelected) BorderStroke(1.dp, Primary) else null,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .clickable { audience = aud }
+                            ) {
+                                Text(
+                                    text = aud,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) Primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Description
+                OutlinedTextField(
+                    value = desc,
+                    onValueChange = { desc = it },
+                    label = { Text("Description / Details *") },
+                    placeholder = { Text("Details, guidelines, or instructions for participants...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    minLines = 3
+                )
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    val days = daysFromNow.toIntOrNull() ?: 1
-                    onSubmit(title.trim(), desc.trim(), System.currentTimeMillis() + (days * 86400000L))
+                    val days = selectedDaysOffset
+                    val targetDate = System.currentTimeMillis() + (days * 86400000L)
+                    val fullTitle = if (selectedCategory.isNotBlank() && selectedCategory != "Notice") {
+                        val categoryPrefix = when (selectedCategory) {
+                            "Academic & Exam" -> "Exam"
+                            "Cultural Fest" -> "Fest"
+                            "Sports Meet" -> "Sports"
+                            "Holiday" -> "Holiday"
+                            "Workshop" -> "Workshop"
+                            else -> "Notice"
+                        }
+                        "[$categoryPrefix] ${title.trim()}"
+                    } else title.trim()
+
+                    val fullDesc = buildString {
+                        if (venue.isNotBlank()) append("📍 Venue: ${venue.trim()}\n")
+                        if (audience.isNotBlank() && audience != "All Campus") append("👥 Target: $audience\n")
+                        if (venue.isNotBlank() || (audience.isNotBlank() && audience != "All Campus")) append("\n")
+                        append(desc.trim())
+                    }
+
+                    onSubmit(fullTitle, fullDesc, targetDate)
                 },
-                enabled = !isLoading && title.isNotBlank() && desc.isNotBlank() && daysFromNow.isNotBlank(),
-                shape = RoundedCornerShape(12.dp)
+                enabled = !isLoading && title.isNotBlank() && desc.isNotBlank(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Primary)
             ) {
-                if (isLoading) CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp) else Text("Add")
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
+                } else {
+                    Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Publish Event", fontWeight = FontWeight.Bold)
+                }
             }
         },
-        dismissButton = { if (!isLoading) TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = {
+            if (!isLoading) {
+                TextButton(onClick = onDismiss) {
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
     )
 }
+

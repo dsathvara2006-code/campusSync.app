@@ -252,4 +252,16 @@ class PrincipalRepository(private val context: Context) {
             Result.failure(e)
         }
     }
+
+    suspend fun deleteEvent(collegeId: String, eventId: String): Result<Unit> {
+        return try {
+            firestore.collection("colleges").document(collegeId)
+                .collection("events").document(eventId).delete().await()
+            logActivity(collegeId, "Event Cancelled", "An event has been removed from the institutional schedule.", "event")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }
+
