@@ -1,0 +1,357 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ══════════════════════════════════════════════════
+    // HELPER FUNCTIONS
+    // ══════════════════════════════════════════════════
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Read the user's role and collegeId from the 'users' collection (NO Custom Claims)
+    function getUserData() {
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(path) ? get(path).data : null;
+    }
+
+    function isApproved() {
+      let data = getUserData();
+      return isAuthenticated() && data != null && data.status == "approved";
+    }
+
+    function isInvitedAdmin(email, collegeId) {
+      let unifiedDoc = get(/databases/$(database)/documents/invites/$(email));
+      let adminDoc = get(/databases/$(database)/documents/admin_invites/$(email));
+      return (unifiedDoc.data != null && unifiedDoc.data.role.lower() == "admin" && unifiedDoc.data.collegeId == collegeId)
+          || (adminDoc.data != null && adminDoc.data.collegeId == collegeId);
+    }
+
+    function isPrincipal(collegeId) {
+      let data = getUserData();
+      return isAuthenticated() && isApproved() &&
+             data != null && data.role.lower() == "principal" &&
+             data.collegeId == collegeId;
+    }
+
+    function isAdmin(collegeId) {
+      let data = getUserData();
+      return isAuthenticated() && isApproved() &&
+             data != null && data.role.lower() == "admin" &&
+             data.collegeId == collegeId;
+    }
+
+    function isTeacher(collegeId) {
+      let data = getUserData();
+      return isAuthenticated() && isApproved() &&
+             data != null && data.role.lower() == "teacher" &&
+             data.collegeId == collegeId;
+    }
+
+    function isStudent(collegeId) {
+      let data = getUserData();
+      return isAuthenticated() && isApproved() &&
+             data != null && data.role.lower() == "student" &&
+             data.collegeId == collegeId;
+    }
+
+    function isAssignedTeacher(collegeId, classId) {
+      return isTeacher(collegeId) && 
+             (classId in get(/databases/$(database)/documents/colleges/$(collegeId)/teachers/$(request.auth.uid)).data.assignedClasses);
+    }
+
+    function isMemberOf(collegeId) {
+      return isPrincipal(collegeId) || isAdmin(collegeId) || isTeacher(collegeId) || isStudent(collegeId);
+    }
+
+    // ══════════════════════════════════════════════════
+    // INVITES COLLECTION
+    // ══════════════════════════════════════════════════
+    match /invites/{email} {
+      // Users can read their own invite (by email match)
+      allow read: if isAuthenticated() && request.auth.token.email.lower() == email;
+
+      // Principals and Admins can create invites for their own college
+      // GHOST CLASS FIX: If a classId is provided, verify the class actually exists
+      allow create: if isAuthenticated()
+                    && (isPrincipal(request.resource.data.collegeId) || isAdmin(request.resource.data.collegeId))
+                    && request.resource.data.status == "pending"
+                    && request.resource.data.role.lower() in ["student", "teacher", "admin"]
+                    && (
+                         !request.resource.data.keys().hasAny(['classId'])
+                         || request.resource.data.classId == ""
+                         || exists(/databases/$(database)/documents/colleges/$(request.resource.data.collegeId)/classes/$(request.resource.data.classId))
+                       );
+
+      // Users can ONLY update the status field to "claimed" (nothing else)
+      allow update: if isAuthenticated()
+                    && request.auth.token.email.lower() == email
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+                    && request.resource.data.status == "claimed";
+
+      // Allow Principals/Admins to overwrite/reset invites for their own college
+      allow update: if isAuthenticated()
+                    && (isPrincipal(resource.data.collegeId) || isAdmin(resource.data.collegeId))
+                    && (isPrincipal(request.resource.data.collegeId) || isAdmin(request.resource.data.collegeId))
+                    && request.resource.data.status == "pending";
+    }
+
+    // ══════════════════════════════════════════════════
+    // INVITE CODES (For College Signup)
+    // ══════════════════════════════════════════════════
+    match /invite_codes/{codeId} {
+      // Anyone can read an invite code (needed for signup)
+      allow read: if true;
+      
+      // Only Principals and Admins can create/update invite codes
+      allow write: if isAuthenticated() && (
+        getUserData().role.lower() == "principal" || 
+        getUserData().role.lower() == "admin"
+      ) && request.resource.data.collegeId == getUserData().collegeId;
+    }
+
+    // ══════════════════════════════════════════════════
+    // USERS COLLECTION (Global Role Store)
+    // ══════════════════════════════════════════════════
+    match /users/{userId} {
+      // A user can read their own profile
+      // Admins and Principals can read user profiles in their college for verification
+      allow read: if (isAuthenticated() && request.auth.uid == userId)
+                  || (isAuthenticated() && (isAdmin(resource.data.collegeId) || isPrincipal(resource.data.collegeId)));
+
+      // Account Creation: 
+      allow create: if isAuthenticated()
+                    && request.auth.uid == userId
+                    && (
+                      (request.resource.data.status == "pending" && request.resource.data.role != "admin") ||
+                      (request.resource.data.status == "approved" && request.resource.data.role == "admin" && isInvitedAdmin(request.auth.token.email, request.resource.data.collegeId))
+                    );
+
+      // Privilege Escalation Prevention: Allow update, but deny self-promotion.
+      allow update: if isAuthenticated()
+                    && request.auth.uid == userId
+                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'role', 'collegeId']);
+      
+      // Only Admins or Principals can change another user's status or promote
+      // them (e.g. teacher -> admin via "Make Admin"). 3-role system: Admin
+      // shares Principal's management powers.
+      allow update: if isAuthenticated()
+                    && (isAdmin(resource.data.collegeId) || isPrincipal(resource.data.collegeId))
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'role']);
+    }
+
+    // ══════════════════════════════════════════════════
+    // ADMIN INVITES
+    // ══════════════════════════════════════════════════
+    match /admin_invites/{email} {
+      // 3-role system: Admin shares Principal's powers, incl. inviting other admins
+      allow create, update: if isPrincipal(request.resource.data.collegeId) || isAdmin(request.resource.data.collegeId);
+      allow delete: if isPrincipal(resource.data.collegeId) || isAdmin(resource.data.collegeId) || request.auth.token.email.lower() == email;
+      allow read: if (resource != null && (isPrincipal(resource.data.collegeId) || isAdmin(resource.data.collegeId))) || request.auth.token.email.lower() == email;
+    }
+
+    // ══════════════════════════════════════════════════
+    // COLLEGES AND ALL SUB-COLLECTIONS
+    // ══════════════════════════════════════════════════
+    match /colleges/{collegeId} {
+      // Data Isolation: The colleges collection must completely deny reads/writes unless status is "approved"
+      // Any member of the college can read the college document if they are approved
+      allow read: if isApproved() && isMemberOf(collegeId);
+
+      // Principals can write college-level data
+      allow write: if isPrincipal(collegeId);
+
+      // Allow creation during batch write (new principal onboarding)
+      allow create: if isAuthenticated()
+                    && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.lower() == "principal"
+                    && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.collegeId == collegeId;
+
+      // --- PRINCIPALS ---
+      match /principals/{principalId} {
+        allow read: if (isAuthenticated() && request.auth.uid == principalId) || isPrincipal(collegeId);
+        allow write: if isPrincipal(collegeId) && request.auth.uid == principalId;
+        // Allow creation during batch write (new principal onboarding)
+        allow create: if isAuthenticated()
+                      && request.auth.uid == principalId
+                      && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "principal"
+                      && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.collegeId == collegeId;
+      }
+
+      // --- ADMINS ---
+      match /admins/{adminId} {
+        allow read: if (isAuthenticated() && request.auth.uid == adminId) || isMemberOf(collegeId);
+        // 3-role system: Admin can promote/manage other staff profiles too
+        allow write: if isPrincipal(collegeId) || isAdmin(collegeId);
+        // Allow creation during batch write (new admin onboarding)
+        allow create: if isAuthenticated()
+                      && request.auth.uid == adminId
+                      && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin"
+                      && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.collegeId == collegeId;
+      }
+
+      // --- CLASSES ---
+      match /classes/{classId} {
+        // Principals and Admins can create/update/delete classes
+        allow read: if isMemberOf(collegeId);
+        allow write: if isPrincipal(collegeId) || isAdmin(collegeId);
+
+        // Timetable entries under a class
+        match /timetable/{entryId} {
+          allow read: if isMemberOf(collegeId);
+          allow write: if isPrincipal(collegeId) || isTeacher(collegeId);
+        }
+
+        // Attendance records under a class
+        match /attendance/{date} {
+          allow read: if isMemberOf(collegeId);
+          allow write: if isPrincipal(collegeId) || isTeacher(collegeId);
+        }
+
+        // Assignments under a class
+        match /assignments/{assignmentId} {
+          allow read: if isMemberOf(collegeId);
+          allow write: if isPrincipal(collegeId) || isTeacher(collegeId);
+
+          // Students can ONLY toggle their own id inside completedBy (mark done/undone)
+          allow update: if isStudent(collegeId)
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['completedBy']);
+        }
+
+        // Uploads/Resources under a class
+        match /uploads/{uploadId} {
+          allow read: if isMemberOf(collegeId);
+          allow write: if isPrincipal(collegeId) || isTeacher(collegeId);
+        }
+      }
+
+      // --- STUDENTS ---
+      match /students/{studentId} {
+        allow read: if (isAuthenticated() && request.auth.uid == studentId) || isMemberOf(collegeId);
+        allow update, delete: if (isStudent(collegeId) && request.auth.uid == studentId) || isPrincipal(collegeId) || isAdmin(collegeId);
+        allow create: if isPrincipal(collegeId) || isAdmin(collegeId)
+                      || (isAuthenticated()
+                          && request.auth.uid == studentId
+                          && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "student"
+                          && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.collegeId == collegeId);
+      }
+
+      // --- TEACHERS ---
+      match /teachers/{teacherId} {
+        allow read: if (isAuthenticated() && request.auth.uid == teacherId) || isMemberOf(collegeId);
+        allow update, delete: if (isTeacher(collegeId) && request.auth.uid == teacherId) || isPrincipal(collegeId) || isAdmin(collegeId);
+        allow create: if isPrincipal(collegeId) || isAdmin(collegeId)
+                      || (isAuthenticated()
+                          && request.auth.uid == teacherId
+                          && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher"
+                          && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.collegeId == collegeId);
+      }
+
+      // --- NOTICES ---
+      match /notices/{noticeId} {
+        allow read: if isMemberOf(collegeId);
+        allow write: if isPrincipal(collegeId) || isAdmin(collegeId) || isTeacher(collegeId);
+      }
+
+      // --- SUBJECT ASSIGNMENTS ---
+      match /subject_assignments/{assignmentId} {
+        allow read: if isMemberOf(collegeId);
+        allow write: if isPrincipal(collegeId) || isAdmin(collegeId);
+      }
+
+      // --- RESOURCES ---
+      match /resources/{resourceId} {
+        allow read: if isMemberOf(collegeId);
+        // Any teacher in the college can create/update/delete resources
+        allow create, update, delete: if isPrincipal(collegeId) || isAdmin(collegeId) || isTeacher(collegeId);
+      }
+
+      // --- ZERO COMMISSION FEE SYSTEM ---
+      match /settings/{settingId} {
+        allow read: if isMemberOf(collegeId);
+        allow write: if isPrincipal(collegeId) || isAdmin(collegeId);
+      }
+
+      match /fee_types/{feeId} {
+        allow read: if isMemberOf(collegeId);
+        allow write: if isPrincipal(collegeId) || isAdmin(collegeId);
+      }
+
+      match /fee_dues/{dueId} {
+        allow read: if isMemberOf(collegeId);
+        allow write: if isPrincipal(collegeId) || isAdmin(collegeId);
+
+        // Students can ONLY mark their own pending due as "submitted" (payment proof flow)
+        allow update: if isStudent(collegeId)
+                      && resource.data.studentId == request.auth.uid
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+                      && resource.data.status == 'pending'
+                      && request.resource.data.status == 'submitted';
+      }
+
+      match /fee_payments/{paymentId} {
+        // SECURITY FIX: Cross-reference amount against the actual fee_due record.
+        // A student cannot spoof the payment amount to bypass the required fee.
+        allow create: if isStudent(collegeId)
+                      && request.resource.data.studentId == request.auth.uid
+                      && request.resource.data.status == 'submitted'
+                      && request.resource.data.amount > 0
+                      && request.resource.data.amount == get(/databases/$(database)/documents/colleges/$(collegeId)/fee_dues/$(request.resource.data.dueId)).data.amount;
+        
+        allow update: if isPrincipal(collegeId) || isAdmin(collegeId);
+        allow read: if (isAuthenticated() && request.auth.uid == resource.data.studentId) || isPrincipal(collegeId) || isAdmin(collegeId);
+      }
+      
+      // --- NEW MULTI-FEE CART ORDERS ---
+      match /payment_orders/{orderId} {
+        // Students can create a payment order for themselves
+        allow create: if isAuthenticated()
+                      && request.resource.data.studentId == request.auth.uid
+                      && request.resource.data.status == 'processing';
+        
+        // Principal/Admin can update and read
+        allow update, delete: if isPrincipal(collegeId) || isAdmin(collegeId);
+        allow read: if (isAuthenticated() && request.auth.uid == resource.data.studentId) || isPrincipal(collegeId) || isAdmin(collegeId);
+      }
+
+      // SECURITY FIX: UTR Registry scoped to college namespace.
+      // Previously any authenticated user could write to this collection globally,
+      // enabling a DoS attack by squatting UTR numbers used by other colleges' students.
+      // Now restricted to members of the specific college only.
+      match /used_utrs/{utrNumber} {
+        // SECURITY FIX: Only a member of this college (typically a student during checkout)
+        // can lock a UTR. This prevents cross-tenant and cross-user UTR squatting.
+        allow create: if isStudent(collegeId);
+        // Allow all members to read so the checkout system can verify if a UTR is already used
+        allow read: if isMemberOf(collegeId);
+        allow update, delete: if isPrincipal(collegeId) || isAdmin(collegeId);
+      }
+
+      // --- EVENTS ---
+      match /events/{eventId} {
+        allow read: if isMemberOf(collegeId);
+        allow write: if isPrincipal(collegeId) || isAdmin(collegeId) || isTeacher(collegeId);
+      }
+
+      // --- ACTIVITY LOGS ---
+      match /activity_logs/{logId} {
+        // Only Principals and Admins really need to read logs, but allowing members doesn't hurt.
+        // Usually, dashboard is for Principals/Admins. Let's restrict read to Admin/Principal for privacy.
+        allow read: if isPrincipal(collegeId) || isAdmin(collegeId);
+        // Any member can generate an activity (e.g., student paying fee).
+        allow write: if isMemberOf(collegeId);
+      }
+
+      // --- HOLIDAYS (read by all members, managed by Principal/Admin only) ---
+      match /holidays/{holidayId} {
+        allow read: if isMemberOf(collegeId);
+        allow write: if isPrincipal(collegeId) || isAdmin(collegeId);
+      }
+    }
+
+    // Deny everything else by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

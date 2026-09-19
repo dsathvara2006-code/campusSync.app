@@ -1,0 +1,93 @@
+CampusSync Project Structure:
+=========================
++-- .idea/
+|   +-- caches/
+|   |   |-- deviceStreaming.xml
+|   +-- inspectionProfiles/
+|   |   |-- Project_Default.xml
+|   |-- .gitignore
+|   |-- .name
+|   |-- AndroidProjectSystem.xml
+|   |-- compiler.xml
+|   |-- deploymentTargetSelector.xml
+|   |-- deviceManager.xml
+|   |-- gradle.xml
+|   |-- markdown.xml
+|   |-- misc.xml
+|   |-- runConfigurations.xml
+|   |-- workspace.xml
++-- app/
+|   +-- src/
+|   |   +-- main/
+|   |   |   +-- java/
+|   |   |   |   +-- com/
+|   |   |   |   |   +-- campussync/
+|   |   |   |   |   |   +-- app/
+|   |   |   |   |   |   |   +-- core/
+|   |   |   |   |   |   |   |   +-- components/
+|   |   |   |   |   |   |   |   |   |-- Components.kt
+|   |   |   |   |   |   |   |   +-- model/
+|   |   |   |   |   |   |   |   |   |-- User.kt
+|   |   |   |   |   |   |   |   +-- navigation/
+|   |   |   |   |   |   |   |   |   |-- NavGraph.kt
+|   |   |   |   |   |   |   |   +-- theme/
+|   |   |   |   |   |   |   |   |   |-- Color.kt
+|   |   |   |   |   |   |   |   |   |-- Theme.kt
+|   |   |   |   |   |   |   |   |   |-- ThemeManager.kt
+|   |   |   |   |   |   |   |   +-- workers/
+|   |   |   |   |   |   |   |   |   |-- AssignmentReminderWorker.kt
+|   |   |   |   |   |   |   |   |   |-- ReminderManager.kt
+|   |   |   |   |   |   |   +-- feature/
+|   |   |   |   |   |   |   |   +-- assignments/
+|   |   |   |   |   |   |   |   |   |-- Assignment.kt
+|   |   |   |   |   |   |   |   |   |-- AssignmentRepository.kt
+|   |   |   |   |   |   |   |   |   |-- AssignmentScreen.kt
+|   |   |   |   |   |   |   |   |   |-- AssignmentViewModel.kt
+|   |   |   |   |   |   |   |   +-- attendance/
+|   |   |   |   |   |   |   |   |   |-- Attendance.kt
+|   |   |   |   |   |   |   |   |   |-- AttendanceRepository.kt
+|   |   |   |   |   |   |   |   |   |-- AttendanceViewModel.kt
+|   |   |   |   |   |   |   |   +-- auth/
+|   |   |   |   |   |   |   |   |   |-- AuthRepository.kt
+|   |   |   |   |   |   |   |   |   |-- AuthViewModel.kt
+|   |   |   |   |   |   |   |   |   |-- LoginScreen.kt
+|   |   |   |   |   |   |   |   |   |-- SignupScreen.kt
+|   |   |   |   |   |   |   |   +-- dashboard/
+|   |   |   |   |   |   |   |   |   |-- DashboardScreen.kt
+|   |   |   |   |   |   |   |   |   |-- HomeScreen.kt
+|   |   |   |   |   |   |   |   +-- notice/
+|   |   |   |   |   |   |   |   |   |-- Notice.kt
+|   |   |   |   |   |   |   |   |   |-- NoticeViewModel.kt
+|   |   |   |   |   |   |   |   +-- settings/
+|   |   |   |   |   |   |   |   |   |-- SettingsScreen.kt
+|   |   |   |   |   |   |   |   +-- timetable/
+|   |   |   |   |   |   |   |   |   |-- TimetableEntry.kt
+|   |   |   |   |   |   |   |   |   |-- TimetableRepository.kt
+|   |   |   |   |   |   |   |   |   |-- TimetableScreen.kt
+|   |   |   |   |   |   |   |   |   |-- TimetableViewModel.kt
+|   |   |   |   |   |   |   +-- ui/
+|   |   |   |   |   |   |   |   +-- attendance/
+|   |   |   |   |   |   |   |   |   |-- AttendanceMarkScreen.kt
+|   |   |   |   |   |   |   |   |   |-- AttendanceViewScreen.kt
+|   |   |   |   |   |   |   |-- MainActivity.kt
+|   |   |   +-- res/
+|   |   |   |   +-- mipmap-xxxhdpi/
+|   |   |   |   |   |-- ic_launcher.png
+|   |   |   |   +-- values/
+|   |   |   |   |   |-- themes.xml
+|   |   |   |-- AndroidManifest.xml
+|   |-- build.gradle.kts
+|   |-- google-services.json
++-- gradle/
+|   +-- wrapper/
+|   |   |-- gradle-wrapper.jar
+|   |   |-- gradle-wrapper.properties
+|   |-- gradle-daemon-jvm.properties
+|-- build.gradle.kts
+|-- gradle.properties
+|-- gradlew
+|-- gradlew.bat
+|-- local.properties
+|-- project_structure.txt
+|-- README.md
+|-- settings.gradle.kts

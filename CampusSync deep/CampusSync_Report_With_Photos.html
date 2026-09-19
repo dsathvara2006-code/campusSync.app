@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CampusSync Official Report</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f1115; color: #e1e1e1; margin: 0; padding: 40px; }
+        h1 { text-align: center; color: #6366F1; margin-bottom: 50px; font-size: 36px; }
+        .section { background: #1a1c23; padding: 40px; border-radius: 12px; margin-bottom: 50px; box-shadow: 0 10px 15px rgba(0,0,0,0.3); }
+        h2 { color: #4ade80; border-bottom: 2px solid #2d303b; padding-bottom: 15px; font-size: 24px; margin-top: 0; }
+        .img-container { text-align: center; margin: 30px 0; background: #22252e; padding: 20px; border-radius: 8px; }
+        img { max-width: 100%; border-radius: 8px; }
+        .report { background: #22252e; padding: 25px; border-left: 6px solid #6366F1; font-size: 16px; line-height: 1.8; border-radius: 8px; color: #a0aec0; }
+        .report strong { color: #e2e8f0; font-size: 18px; display: inline-block; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>CampusSync: Complete Architecture & Feature Report</h1>
+
+    <div class="section">
+        <h2>1. Master App Flow (Overall Architecture)</h2>
+        <div class="img-container">
+            <img src="https://mermaid.ink/img/Z3JhcGggVEQKU3BsYXNoW0FwcCBMYXVuY2ggLyBTcGxhc2hdIC0tPiBBdXRoQ2hlY2t7TG9nZ2VkIEluP30KQXV0aENoZWNrIC0tIE5vIC0tPiBMb2dpbltMb2dpbiBTY3JlZW5dCkF1dGhDaGVjayAtLSBZZXMgLS0+IFJvbGVDaGVja3tDaGVjayBVc2VyIFJvbGV9CkxvZ2luIC0tPiBHb29nbGVBdXRoW0NvbnRpbnVlIHdpdGggR29vZ2xlXQpHb29nbGVBdXRoIC0tPiBEQkNoZWNre0V4aXN0cyBpbiB1c2VycyBjb2xsZWN0aW9uP30KREJDaGVjayAtLSBZZXMgLS0+IFJvbGVDaGVjawpEQkNoZWNrIC0tIE5vIC0tPiBSZXF1ZXN0Rm9ybVtSZXF1ZXN0IEFjY2VzcyBGb3JtICsgQ29sbGVnZSBDb2RlXQpSZXF1ZXN0Rm9ybSAtLT4gU3VibWl0UmVxdWVzdFtTZW5kIFJlcXVlc3QgdG8gRmlyZXN0b3JlXQpTdWJtaXRSZXF1ZXN0IC0tPiBXYWl0aW5nUm9vbVtXYWl0aW5nIFJvb21dCldhaXRpbmdSb29tIC0tIEFkbWluIEFwcHJvdmVzIC0tPiBSb2xlQ2hlY2sKUm9sZUNoZWNrIC0tIFByaW5jaXBhbCAtLT4gUERbUHJpbmNpcGFsIERhc2hib2FyZF0KUm9sZUNoZWNrIC0tIEFkbWluIC0tPiBBRFtBZG1pbiBEYXNoYm9hcmRdClJvbGVDaGVjayAtLSBTdHVkZW50IC0tPiBTRFtTdHVkZW50IERhc2hib2FyZF0KUm9sZUNoZWNrIC0tIFRlYWNoZXIgLS0+IFREW1RlYWNoZXIgRGFzaGJvYXJkXQ==?theme=dark" alt="Master App Flow">
+        </div>
+        <div class="report">
+            <strong>Report / Explanation:</strong><br>
+            This flow demonstrates the bird's-eye view of CampusSync. It highlights the multi-tenancy entry point. When a new user logs in via Google, the system checks if they exist in the database. If not, they are directed to the <b>Request Access Form</b> where they must provide a unique <b>College Code</b>. They are then placed in a waiting room until their respective college Admin approves them. Once approved, they are routed to their role-specific dashboard.
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>2. Principal & Admin Flow (Management & Verification)</h2>
+        <div class="img-container">
+            <img src="https://mermaid.ink/img/Z3JhcGggVEQKRGFzaFtBZG1pbiAvIFByaW5jaXBhbCBEYXNoYm9hcmRdIC0tPiBGMShWZXJpZnkgUmVxdWVzdHMpCkRhc2ggLS0+IEYyKE1hbmFnZSBTdGFmZikKRGFzaCAtLT4gRjMoRmVlIE1hbmFnZW1lbnQpCkRhc2ggLS0+IEY0KFByaW5jaXBhbCBPdmVydmlldykKRjEgLS0+IExpc3RbRmV0Y2ggUGVuZGluZyBVc2VycyBmb3IgdGhpcyBDb2xsZWdlXQpMaXN0IC0tPiBBY3Rpb24xe0FwcHJvdmUgb3IgUmVqZWN0fQpBY3Rpb24xIC0tIEFwcHJvdmUgLS0+IFN0YXR1c1VwZGF0ZVtVcGRhdGUgU3RhdHVzIHRvICdhcHByb3ZlZCddCkFjdGlvbjEgLS0gUmVqZWN0IC0tPiBEZWxldGVbRGVsZXRlIFVzZXIgUmVxdWVzdF0KRjIgLS0+IFN0YWZmTGlzdFtWaWV3IFRlYWNoZXJzICYgQWRtaW5zXQpTdGFmZkxpc3QgLS0+IEFkZFN0YWZmW0Fzc2lnbiBSb2xlc10KRjMgLS0+IFNldHVwW0NyZWF0ZSBGZWUgVHlwZXNdCkYzIC0tPiBBc3NpZ25bQXNzaWduIEZlZXMgdG8gQ2xhc3Nlc10KRjMgLS0+IFZlcmlmeVBheW1lbnRbQXBwcm92ZSBTdHVkZW50IFVUUi9QYXltZW50c10KRjQgLS0+IEFuYWx5dGljc1tWaWV3IENvbGxlZ2Utd2lkZSBBdHRlbmRhbmNlIEFuYWx5dGljc10=?theme=dark" alt="Admin Flow">
+        </div>
+        <div class="report">
+            <strong>Report / Explanation:</strong><br>
+            The Admin/Principal workflow handles high-level management. The most critical aspect is <b>Verify Requests</b>, where the system queries only those pending users whose <code>collegeId</code> matches the Admin's. The Admin can approve (updating the user's status to 'approved' in Firestore) or reject (deleting the user from the database). Additionally, Admins can create fee structures, assign them to specific classes, and verify UTR numbers for payments made by students.
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>3. Teacher Flow (Attendance & Academics)</h2>
+        <div class="img-container">
+            <img src="https://mermaid.ink/img/Z3JhcGggVEQKRGFzaFtUZWFjaGVyIERhc2hib2FyZF0gLS0+IEYxKFRpbWV0YWJsZSAmIExlY3R1cmVzKQpEYXNoIC0tPiBGMihUYWtlIEF0dGVuZGFuY2UpCkRhc2ggLS0+IEYzKFVwbG9hZCBSZXNvdXJjZXMpCkRhc2ggLS0+IEY0KEFzc2lnbm1lbnRzKQpGMSAtLT4gVmlld0NsYXNzZXNbVmlldyBBc3NpZ25lZCBTdWJqZWN0cyAmIENsYXNzZXNdCkYyIC0tPiBTZWxlY3RTdWJqZWN0W1NlbGVjdCBTdWJqZWN0XQpTZWxlY3RTdWJqZWN0IC0tPiBTdHVkZW50TGlzdFtWaWV3IExpc3Qgb2YgU3R1ZGVudHMgaW4gQ2xhc3NdClN0dWRlbnRMaXN0IC0tPiBNYXJrW1RvZ2dsZSBQcmVzZW50IC8gQWJzZW50XQpNYXJrIC0tPiBTYXZlW1NhdmUgdG8gRmlyZXN0b3JlXQpGMyAtLT4gQWRkRmlsZVtVcGxvYWQgUERGIC8gRG9jdW1lbnRdCkFkZEZpbGUgLS0+IFRhZ2dpbmdbVGFnIGJ5IFN1YmplY3QgJiBTZW1lc3Rlcl0KVGFnZ2luZyAtLT4gQ2xvdWRTdG9yYWdlW1VwbG9hZCB0byBGaXJlYmFzZSBTdG9yYWdlXQpGNCAtLT4gQ3JlYXRlVGFza1tDcmVhdGUgQXNzaWdubWVudCAmIER1ZSBEYXRlXQ==?theme=dark" alt="Teacher Flow">
+        </div>
+        <div class="report">
+            <strong>Report / Explanation:</strong><br>
+            Teachers are responsible for daily academic operations. They can select their assigned subjects and classes to <b>Take Attendance</b> (instantly saved and synced to Firestore). They can also <b>Upload Resources</b> (like notes and PDFs), tagging them properly by subject and semester for students to easily locate them in the cloud. Finally, they can create assignments and track which students have completed them.
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>4. Student Flow (Learning & Fees)</h2>
+        <div class="img-container">
+            <img src="https://mermaid.ink/img/Z3JhcGggVEQKRGFzaFtTdHVkZW50IERhc2hib2FyZF0gLS0+IEYxKFZpZXcgQXR0ZW5kYW5jZSkKRGFzaCAtLT4gRjIoVmlldyBSZXNvdXJjZXMpCkRhc2ggLS0+IEYzKFBheSBGZWVzKQpEYXNoIC0tPiBGNChBc3NpZ25tZW50cykKRjEgLS0+IFN0YXRzW1NlZSBQZXJzb25hbCBBdHRlbmRhbmNlICVdCkYyIC0tPiBTZWFyY2hbU2VhcmNoIE5vdGVzIGJ5IFN1YmplY3RdClNlYXJjaCAtLT4gRG93bmxvYWRbRG93bmxvYWQgUERGXQpGMyAtLT4gUGVuZGluZ0ZlZXNbVmlldyBBc3NpZ25lZCBQZW5kaW5nIEZlZXNdClBlbmRpbmdGZWVzIC0tPiBQYXlbVXBsb2FkIFVUUiBOdW1iZXIgJiBTY3JlZW5zaG90XQpQYXkgLS0+IFdhaXRBcHByb3ZhbFtXYWl0IGZvciBBZG1pbiB0byBWZXJpZnkgUGF5bWVudF0KRjQgLS0+IFRvRG9bVmlldyBQZW5kaW5nIEFzc2lnbm1lbnRzXQ==?theme=dark" alt="Student Flow">
+        </div>
+        <div class="report">
+            <strong>Report / Explanation:</strong><br>
+            The Student dashboard provides read-only access to academic data and read-write access to fee payments. Students can monitor their real-time attendance statistics updated by teachers. They can search the digital library to download PDF notes uploaded by their instructors. For administration, students can view their pending fees, upload UPI payment screenshots along with the UTR number, and wait for the Admin to verify and clear their dues.
+        </div>
+    </div>
+
+</body>
+</html>

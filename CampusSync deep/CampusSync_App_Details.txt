@@ -1,0 +1,86 @@
+App Documentation & Details - CampusSync
+
+1. APP ME KYA KYA USE HUA HAI? (Tech Stack & Tools)
+--------------------------------------------------
+Is app ko modern Android development standards ke hisaab se banaya gaya hai. Niche diye gaye tools aur technologies use hui hain:
+- Kotlin: App ki primary programming language.
+- Jetpack Compose: UI banane ke liye use kiya gaya hai. Isme XML files nahi hoti, sab kuch Kotlin me hi design hota hai (Declarative UI).
+- Firebase Firestore: Database ke liye use kiya gaya hai. Ye real-time data sync karta hai aur app offline bhi kaam kare iske liye "Offline Persistence" enable kiya gaya hai.
+- MVVM Architecture (Model-View-ViewModel): Code ko clean rakhne ke liye is architecture ka use hua hai jisse UI aur background logic alag-alag rahe.
+- Kotlin Coroutines & Flow: Background tasks (jaise data fetch karna) aur real-time state update karne ke liye.
+- Navigation Compose: Ek screen se dusre screen par jaane (routing) ke liye.
+
+2. KIS KIS FUNCTION KO KAISE BUILD KIYA HAI? (Architecture & Build Process)
+---------------------------------------------------------------------------
+Har feature (jaise Timetable, Resources, Attendance) ko ek proper structure me build kiya gaya hai:
+- Repository (e.g., TimetableRepository): Iska kaam sirf Firebase Firestore se baat karna, data lana (fetch), add karna, ya delete karna hota hai.
+- ViewModel (e.g., TimetableViewModel): Ye repository ko call karta hai, error handle karta hai aur data ko UI ke liye ready (StateFlow) rakhta hai.
+- Screen (e.g., TimetableScreen): Ye Jetpack Compose ke UI functions hote hain jo ViewModel se data lete hain aur screen par user ko dikhate hain.
+
+3. SMALL SE SMALL FUNCTIONS KI LIST WITH THEIR WORK:
+----------------------------------------------------
+Yahan app ke alag-alag features aur unke andar ke chote/bade functions ki list hai:
+
+A. TIMETABLE FEATURE:
+- loadTimetable(): Database se class ka timetable fetch karta hai.
+- addTimetableEntry(): Naya lecture/class timetable me add karta hai.
+- deleteTimetableEntry(): Kisi lecture ko timetable se delete karta hai.
+- TimetableScreen() (UI): Timetable ka main page dikhata hai.
+- LectureItemCard() (UI): Har ek lecture ka chota card design jisme time aur subject dikhta hai.
+- AddTimetableDialog() (UI): Naya lecture add karne ke liye ek popup dialog open karta hai.
+- TimePickerDialog() (UI): Time select karne ke liye clock UI dikhata hai.
+
+B. RESOURCES FEATURE (Study Material):
+- fetchResources(): Branch aur semester ke hisaab se study materials lata hai.
+- uploadResource(): Naya PDF/Document database aur storage me upload karta hai.
+- likeResource(): Kisi resource par 'like' badhane ka kaam karta hai.
+- deleteResource() / updateResource(): Resources ko delete ya edit karne ke kaam aata hai.
+- ResourcesScreen() (UI): Resources ka main page.
+- FolderGridCard() (UI): Subjects ko folder/grid style me dikhata hai.
+- MaterialCard() (UI): Ek single PDF/Document ko dikhane wala card jisme Edit, Delete, aur Like ka option hota hai.
+
+C. ATTENDANCE FEATURE:
+- AttendanceViewScreen() (UI): Student ke liye screen jahan wo apni attendance dekh sakta hai.
+- AttendanceMarkScreen() (UI): Teacher ke liye screen jahan wo bacchon ki attendance mark karte hain.
+- StatusBadgeCard() (UI): Present/Absent ka chota sa colored badge dikhata hai.
+- StudentCalendar() / AttendanceCalendar() (UI): Calender view jisme din ke hisaab se attendance highlight hoti hai.
+- StudentAttendanceRow() (UI): Teacher screen pe ek student ki line jisme switch/checkbox hota hai attendance lagane ke liye.
+
+D. SETTINGS FEATURE:
+- SettingsScreen() (UI): App ki settings ka page.
+- SettingSwitchRow() (UI): On/Off wala toggle button (jaise notifications ke liye).
+- ThemeOptionRow() (UI): Light mode, Dark mode, ya System default select karne ka chota menu.
+
+E. NOTICE BOARD FEATURE:
+- listenToNotices(): Naye notices ko real-time me fetch karke list update karta hai.
+- addNotice(): Admin/Teacher naya notice sab baccho ke liye daal sakte hain.
+
+F. DASHBOARD / HOME:
+- DashboardScreen() / HomeScreen() (UI): App open hone ke baad main page jahan sabhi options aur overview dikhta hai.
+
+4. APP ME KYA KYA HO GAYA HAI (Detailed Text-Based "Video" Walkthrough)
+-----------------------------------------------------------------------
+(Note: Main ek AI hu, isliye main actual .mp4 video generate nahi kar sakta, lekin main aapko ek detailed scene-by-scene bata raha hu ki app me abhi kya kya ready ho chuka hai)
+
+Scene 1: App Launch & Splash Screen
+- User jaise hi app kholta hai, ek `SplashScreen` aata hai. Phir user `DashboardScreen` ya `HomeScreen` par land karta hai. 
+
+Scene 2: Home Dashboard
+- Dashboard par bacchon ko apna attendance status, upcoming lectures aur latest notices ek hi jagah par summarized format me dikhte hain.
+
+Scene 3: Attendance Management
+- Agar user Teacher hai, toh wo `AttendanceMarkScreen` par ja kar class ka attendance laga sakte hain. List of students aati hai aur wo unhe Present/Absent mark karte hain.
+- Agar user Student hai, toh wo `AttendanceViewScreen` me apna mahine ka calendar dekhta hai jahan use pata chalta hai ki kis din wo present tha aur kis din absent.
+
+Scene 4: Timetable
+- User `TimetableScreen` me apna daily schedule dekh sakta hai. Lectures card format me aate hain (`LectureItemCard`). Teachers ke paas option hota hai `AddTimetableDialog` open karke naye lectures add karne ka.
+
+Scene 5: Resources (Study Material)
+- `ResourcesScreen` par bacchon ko apne subjects ek folder grid ki tarah dikhte hain (`FolderGridCard`). 
+- Folder open karne par PDF/Notes dikhte hain (`MaterialCard`). Bacche inhe padh sakte hain aur like bhi kar sakte hain. Teachers se yahan `uploadResource` ke zariye naya material upload kiya jaa sakta hai.
+
+Scene 6: Settings & Theme
+- User `SettingsScreen` me jaakar app ka theme (Dark Mode / Light Mode) change kar sakta hai jo turant apply ho jata hai bina app restart kiye (kiunki ThemeManager banaya hua hai).
+
+=======================================================
+Upar di gayi details me aapke app ka poora overview aur function list shamil hai. Ye file 'CampusSync_App_Details.txt' ke naam se save kar di gayi hai.

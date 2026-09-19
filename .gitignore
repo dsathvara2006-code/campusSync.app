@@ -1,0 +1,39 @@
+# Gradle & Android build files
+.gradle/
+build/
+*/build/
+*/*/build/
+*.apk
+*.aar
+*.aab
+*.dex
+*.class
+bin/
+gen/
+out/
+release/
+
+# Local config & secrets
+local.properties
+google-services.json
+**/google-services.json
+**/serviceAccountKey*.json
+*.jks
+*.keystore
+
+# IDE files
+.idea/
+*.iml
+.navigation/
+captures/
+.externalNativeBuild
+.cxx/
+
+# Node
+node_modules/
+**/node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db

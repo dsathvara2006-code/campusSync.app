@@ -1,0 +1,57 @@
+CampusSync: Complete Architecture & Feature Report
+=================================================
+
+-------------------------------------------------
+1. Master App Flow (Overall Architecture)
+-------------------------------------------------
+
+[CHART STRUCTURE]
+Splash Screen --> Check Logged In
+If No --> Login Screen --> Google Sign-In --> Check if User Exists
+If User Doesn't Exist --> Request Access Form (Provide College Code) --> Submit Request --> Waiting Room
+Waiting Room --> Admin Approves --> Check User Role (Principal, Admin, Teacher, Student) --> Routes to Specific Dashboard
+
+[REPORT / EXPLANATION]
+This flow demonstrates the bird's-eye view of CampusSync. It highlights the multi-tenancy entry point. When a new user logs in via Google, the system checks if they exist in the database. If not, they are directed to the Request Access Form where they must provide a unique College Code. They are then placed in a waiting room until their respective college Admin approves them. Once approved, they are routed to their role-specific dashboard.
+
+-------------------------------------------------
+2. Principal & Admin Flow (Management)
+-------------------------------------------------
+
+[CHART STRUCTURE]
+Admin Dashboard:
+1. Verify Requests --> Fetch Pending Users for Admin's College --> Approve (Update Status) or Reject (Delete Request)
+2. Manage Staff --> View Teachers & Admins --> Assign Roles
+3. Fee Management --> Create Fee Types --> Assign to Classes --> Verify Student UTR Payments
+4. Principal Overview --> View College-wide Attendance Analytics
+
+[REPORT / EXPLANATION]
+The Admin/Principal workflow handles high-level management. The most critical aspect is Verify Requests, where the system queries only those pending users whose 'collegeId' matches the Admin's. The Admin can approve (updating the user's status to 'approved' in Firestore) or reject (deleting the user from the database). Additionally, Admins can create fee structures, assign them to specific classes, and verify UTR numbers for payments made by students.
+
+-------------------------------------------------
+3. Teacher Flow (Attendance & Academics)
+-------------------------------------------------
+
+[CHART STRUCTURE]
+Teacher Dashboard:
+1. Timetable & Lectures --> View Assigned Subjects & Classes
+2. Take Attendance --> Select Subject --> View Student List --> Mark Present/Absent --> Save to Firestore
+3. Upload Resources --> Upload PDF/Document --> Tag by Subject & Semester --> Save to Firebase Storage
+4. Assignments --> Create Assignment & Set Due Date
+
+[REPORT / EXPLANATION]
+Teachers are responsible for daily academic operations. They can select their assigned subjects and classes to Take Attendance (instantly saved and synced to Firestore). They can also Upload Resources (like notes and PDFs), tagging them properly by subject and semester for students to easily locate them in the cloud. Finally, they can create assignments and track which students have completed them.
+
+-------------------------------------------------
+4. Student Flow (Learning & Fees)
+-------------------------------------------------
+
+[CHART STRUCTURE]
+Student Dashboard:
+1. View Attendance --> See Personal Attendance Percentage
+2. View Resources --> Search Notes by Subject --> Download PDF
+3. Pay Fees --> View Pending Fees --> Upload UPI UTR Number & Screenshot --> Wait for Admin to Verify
+4. Assignments --> View Pending Assignments To-Do List
+
+[REPORT / EXPLANATION]
+The Student dashboard provides read-only access to academic data and read-write access to fee payments. Students can monitor their real-time attendance statistics updated by teachers. They can search the digital library to download PDF notes uploaded by their instructors. For administration, students can view their pending fees, upload UPI payment screenshots along with the UTR number, and wait for the Admin to verify and clear their dues.

@@ -1,0 +1,60 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isMemberOf(collegeId) {
+      let data = getUserData();
+      return isAuthenticated() && data.collegeId == collegeId;
+    }
+    
+    function isTeacher(collegeId) {
+      let data = getUserData();
+      return isAuthenticated() && data.role.lower() == "teacher" && data.collegeId == collegeId;
+    }
+    
+    function isStudent(collegeId) {
+      let data = getUserData();
+      return isAuthenticated() && data.role.lower() == "student" && data.collegeId == collegeId;
+    }
+    
+    function isAdminOrPrincipal(collegeId) {
+      let data = getUserData();
+      return isAuthenticated() && (data.role.lower() == "admin" || data.role.lower() == "principal") && data.collegeId == collegeId;
+    }
+
+    match /colleges/{collegeId} {
+      
+      // Resources (Teacher uploads, read by any member of college)
+      match /resources/{fileName} {
+        allow read: if isMemberOf(collegeId);
+        allow write: if isTeacher(collegeId);
+      }
+      
+      // Payments (Student uploads screenshot, read by that student or admin)
+      match /payments/{studentId}/{fileName} {
+        allow read: if (isStudent(collegeId) && request.auth.uid == studentId) || isAdminOrPrincipal(collegeId);
+        allow write: if isStudent(collegeId) && request.auth.uid == studentId;
+      }
+      
+      // Profile pictures or generic assets
+      match /assets/{fileName} {
+        allow read: if isMemberOf(collegeId);
+        allow write: if isMemberOf(collegeId);
+      }
+    }
+    
+    // Deny all other access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

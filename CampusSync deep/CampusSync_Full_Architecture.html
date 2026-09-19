@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusSync - Full Architecture & Role Flows</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+    </script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0F0F13;
+            color: #FFFFFF;
+            margin: 0;
+            padding: 40px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #6366F1;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        h2 {
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-top: 60px;
+            color: #4ade80;
+        }
+        p, li {
+            color: #A0A0A0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .explanation {
+            background-color: #1A1A24;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #6366F1;
+            margin-bottom: 40px;
+        }
+        .chart-container {
+            background-color: #1A1A24;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            display: flex;
+            justify-content: center;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>CampusSync: Complete Flowcharts & Explanations</h1>
+    <p style="text-align: center;">Scroll down to see the master flowchart of the entire app, followed by individual flowcharts for every specific role and feature.</p>
+
+    <!-- 1. MASTER APP FLOW -->
+    <h2>1. The Master App Flow (Overall Architecture)</h2>
+    <div class="chart-container">
+        <div class="mermaid">
+        graph TD
+            Splash[App Launch / Splash] --> AuthCheck{Logged In?}
+            
+            AuthCheck -- No --> Login[Login Screen]
+            AuthCheck -- Yes --> RoleCheck{Check User Role}
+            
+            Login --> GoogleAuth[Continue with Google]
+            GoogleAuth --> DBCheck{Exists in users collection?}
+            
+            DBCheck -- Yes --> RoleCheck
+            DBCheck -- No --> RequestForm[Request Access Form + College Code]
+            RequestForm --> SubmitRequest[Send Request to Firestore]
+            SubmitRequest --> WaitingRoom[Waiting Room]
+            WaitingRoom -- Admin Approves --> RoleCheck
+            
+            RoleCheck -- Principal --> PD[Principal Dashboard]
+            RoleCheck -- Admin --> AD[Admin Dashboard]
+            RoleCheck -- Student --> SD[Student Dashboard]
+            RoleCheck -- Teacher --> TD[Teacher Dashboard]
+        </div>
+    </div>
+    <div class="explanation">
+        <strong>Explanation:</strong>
+        <p>This is the bird's-eye view of how CampusSync operates. Every time someone opens the app, the system checks if they are logged in. If they are a brand new user, they must fill out the "Request Access" form and provide a specific "College Code". This ensures their account is tied only to their specific college. They wait in the "Waiting Room" until an Admin approves them. Once approved, the app automatically routes them to their specific Dashboard (Principal, Admin, Teacher, or Student).</p>
+    </div>
+
+    <!-- 2. PRINCIPAL / ADMIN FLOW -->
+    <h2>2. Principal & Admin Flow (Management & Verification)</h2>
+    <div class="chart-container">
+        <div class="mermaid">
+        graph TD
+            Dash[Admin / Principal Dashboard] --> F1(Verify Requests)
+            Dash --> F2(Manage Staff)
+            Dash --> F3(Fee Management)
+            Dash --> F4(Principal Overview)
+            
+            F1 --> List[Fetch Pending Users for this College]
+            List --> Action1{Approve or Reject}
+            Action1 -- Approve --> StatusUpdate[Update Status to 'approved']
+            Action1 -- Reject --> Delete[Delete User Request]
+            
+            F2 --> StaffList[View Teachers & Admins]
+            StaffList --> AddStaff[Assign Roles]
+            
+            F3 --> Setup[Create Fee Types]
+            F3 --> Assign[Assign Fees to Classes]
+            F3 --> VerifyPayment[Approve Student UTR/Payments]
+            
+            F4 --> Analytics[View College-wide Attendance Analytics]
+        </div>
+    </div>
+    <div class="explanation">
+        <strong>Explanation:</strong>
+        <p>The Admin and Principal have the highest level of access. Their primary job is management.</p>
+        <ul>
+            <li><strong>Verify Requests:</strong> They see all the students/teachers who applied with their College Code. They can "Approve" them (which instantly lets the student into the app) or "Reject" them.</li>
+            <li><strong>Manage Staff:</strong> They can view all teachers and assign administrative roles if necessary.</li>
+            <li><strong>Fee Management:</strong> They can create fee structures (e.g., Tuition Fee, Bus Fee), assign those fees to specific classes, and verify the UTR payment screenshots uploaded by students.</li>
+            <li><strong>Principal Overview:</strong> Only the Principal gets access to high-level analytics to see overall attendance metrics across all classes.</li>
+        </ul>
+    </div>
+
+    <!-- 3. TEACHER FLOW -->
+    <h2>3. Teacher Flow (Attendance & Academics)</h2>
+    <div class="chart-container">
+        <div class="mermaid">
+        graph TD
+            Dash[Teacher Dashboard] --> F1(Timetable & Lectures)
+            Dash --> F2(Take Attendance)
+            Dash --> F3(Upload Resources)
+            Dash --> F4(Assignments)
+            
+            F1 --> ViewClasses[View Assigned Subjects & Classes]
+            
+            F2 --> SelectSubject[Select Subject]
+            SelectSubject --> StudentList[View List of Students in Class]
+            StudentList --> Mark[Toggle Present / Absent]
+            Mark --> Save[Save to Firestore]
+            
+            F3 --> AddFile[Upload PDF / Document]
+            AddFile --> Tagging[Tag by Subject & Semester]
+            Tagging --> CloudStorage[Upload to Firebase Storage]
+            
+            F4 --> CreateTask[Create Assignment & Due Date]
+        </div>
+    </div>
+    <div class="explanation">
+        <strong>Explanation:</strong>
+        <p>The Teacher's workflow is heavily focused on daily academics and class management.</p>
+        <ul>
+            <li><strong>Attendance:</strong> A teacher clicks on their assigned lecture, sees the list of students for that specific class, and marks them present or absent. This data is instantly synced to the cloud.</li>
+            <li><strong>Resources:</strong> Teachers can upload study materials (PDFs, notes) and tag them by semester and subject so students can find them easily.</li>
+            <li><strong>Assignments:</strong> They can create homework or assignments with due dates for their classes.</li>
+        </ul>
+    </div>
+
+    <!-- 4. STUDENT FLOW -->
+    <h2>4. Student Flow (Learning & Fees)</h2>
+    <div class="chart-container">
+        <div class="mermaid">
+        graph TD
+            Dash[Student Dashboard] --> F1(View Attendance)
+            Dash --> F2(View Resources)
+            Dash --> F3(Pay Fees)
+            Dash --> F4(Assignments)
+            
+            F1 --> Stats[See Personal Attendance %]
+            
+            F2 --> Search[Search Notes by Subject]
+            Search --> Download[Download PDF]
+            
+            F3 --> PendingFees[View Assigned Pending Fees]
+            PendingFees --> Pay[Upload UTR Number & Screenshot]
+            Pay --> WaitApproval[Wait for Admin to Verify Payment]
+            
+            F4 --> ToDo[View Pending Assignments]
+        </div>
+    </div>
+    <div class="explanation">
+        <strong>Explanation:</strong>
+        <p>The Student's workflow is read-heavy, focusing on consuming the data generated by Teachers and Admins.</p>
+        <ul>
+            <li><strong>Attendance & Assignments:</strong> Students can see their personal attendance percentage and view any pending homework assigned by their teachers.</li>
+            <li><strong>Resources:</strong> They have access to a digital library where they can search and download notes uploaded by teachers.</li>
+            <li><strong>Pay Fees:</strong> Students can see exactly what fees they owe. They make a payment via UPI, enter the UTR transaction number in the app, upload a screenshot, and submit it for the Admin to verify.</li>
+        </ul>
+    </div>
+
+</body>
+</html>
