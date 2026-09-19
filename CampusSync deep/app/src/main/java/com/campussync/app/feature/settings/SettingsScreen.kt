@@ -307,6 +307,24 @@ fun SettingsScreen(
                     onClick = { onNavigate("terms_of_service") }
                 )
 
+                Spacer(Modifier.height(8.dp))
+
+                SettingClickRow(
+                    icon = Icons.Rounded.Info,
+                    title = "Refund Policy",
+                    subtitle = "UPI fee payment & refund terms",
+                    onClick = { onNavigate("refund_policy") }
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                SettingClickRow(
+                    icon = Icons.Rounded.Person,
+                    title = "Community & Content Guidelines",
+                    subtitle = "Campus safety and code of conduct",
+                    onClick = { onNavigate("community_guidelines") }
+                )
+
                 Spacer(Modifier.height(24.dp))
 
                 Text(

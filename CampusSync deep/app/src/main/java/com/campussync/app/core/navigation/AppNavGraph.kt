@@ -39,6 +39,9 @@ sealed class Screen(val route: String) {
     object HelpCenter : Screen("help_center")
     object PrivacyPolicy : Screen("privacy_policy")
     object TermsOfService : Screen("terms_of_service")
+    object RefundPolicy : Screen("refund_policy")
+    object AcceptableUsePolicy : Screen("acceptable_use_policy")
+    object CommunityGuidelines : Screen("community_guidelines")
     
     object LectureAttendance : Screen("lecture_attendance/{classId}/{subjectName}") {
         fun createRoute(classId: String, subjectName: String) = "lecture_attendance/$classId/$subjectName"

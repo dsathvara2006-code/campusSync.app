@@ -24,8 +24,7 @@ import com.campussync.app.feature.dashboard.DashboardScreen
 import com.campussync.app.feature.settings.SettingsScreen
 import com.campussync.app.feature.support.SupportScreen
 import com.campussync.app.feature.support.HelpCenterScreen
-import com.campussync.app.feature.legal.PrivacyPolicyScreen
-import com.campussync.app.feature.legal.TermsOfServiceScreen
+import com.campussync.app.feature.legal.*
 
 import com.campussync.app.feature.assignments.AssignmentViewModel
 import com.campussync.app.feature.attendance.AttendanceViewModel
@@ -252,6 +251,18 @@ fun CampusSyncNavGraph(navController: NavHostController = rememberNavController(
         
         composable(Screen.TermsOfService.route) {
             TermsOfServiceScreen(onBack = safePopBackStack)
+        }
+        
+        composable(Screen.RefundPolicy.route) {
+            RefundPolicyScreen(onBack = safePopBackStack)
+        }
+        
+        composable(Screen.AcceptableUsePolicy.route) {
+            AcceptableUsePolicyScreen(onBack = safePopBackStack)
+        }
+        
+        composable(Screen.CommunityGuidelines.route) {
+            CommunityGuidelinesScreen(onBack = safePopBackStack)
         }
         
         composable(Screen.StudentResources.route) {
