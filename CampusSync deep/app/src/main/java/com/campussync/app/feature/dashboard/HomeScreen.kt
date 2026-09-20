@@ -51,9 +51,11 @@ import com.campussync.app.feature.timetable.TimetableViewModel
 import java.time.LocalDate
 import java.time.LocalTime
 import androidx.compose.foundation.lazy.LazyRow
-import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
 import java.util.Locale
+import java.util.Calendar
+import java.util.Date
+import java.text.SimpleDateFormat
 import android.os.Build
 import androidx.annotation.RequiresApi
 import java.time.format.DateTimeFormatter
@@ -108,10 +110,10 @@ fun HomeScreen(
         val h = LocalTime.now().hour
         when { h < 12 -> "☀️"; h < 17 -> "⚡"; else -> "🌙" }
     }
-    val todayName = remember { LocalDate.now().dayOfWeek.getDisplayName(TextStyle.FULL, Locale.US) }
+    val todayName = remember { LocalDate.now().dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, Locale.US) }
     val todayDate = remember {
         val d = LocalDate.now()
-        "${d.dayOfMonth} ${d.month.getDisplayName(TextStyle.SHORT, Locale.US)}, ${d.year}"
+        "${d.dayOfMonth} ${d.month.getDisplayName(java.time.format.TextStyle.SHORT, Locale.US)}, ${d.year}"
     }
 
     val noticeViewModel: com.campussync.app.feature.notice.NoticeViewModel =
@@ -1746,13 +1748,49 @@ private fun AddEventDialog(
     onDismiss: () -> Unit,
     onSubmit: (title: String, desc: String, date: Long) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var title by remember { mutableStateOf("") }
     var desc by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("Academic & Exam") }
-    var selectedDaysOffset by remember { mutableStateOf(1) }
     var venue by remember { mutableStateOf("") }
     var audience by remember { mutableStateOf("All Campus") }
-    var showCustomDays by remember { mutableStateOf(false) }
+
+    var selectedDateMillis by remember {
+        val cal = Calendar.getInstance().apply {
+            add(Calendar.DAY_OF_YEAR, 1)
+            set(Calendar.HOUR_OF_DAY, 9)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+        }
+        mutableStateOf(cal.timeInMillis)
+    }
+
+    val formattedDateText = remember(selectedDateMillis) {
+        SimpleDateFormat("EEEE, dd MMMM yyyy", Locale.getDefault()).format(Date(selectedDateMillis))
+    }
+
+    val datePickerDialog = remember(selectedDateMillis) {
+        val cal = Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
+        android.app.DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                val picked = Calendar.getInstance().apply {
+                    set(Calendar.YEAR, year)
+                    set(Calendar.MONTH, month)
+                    set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                    set(Calendar.HOUR_OF_DAY, 9)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                }
+                selectedDateMillis = picked.timeInMillis
+            },
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH),
+            cal.get(Calendar.DAY_OF_MONTH)
+        ).apply {
+            datePicker.minDate = System.currentTimeMillis() - 1000L
+        }
+    }
 
     val categories = listOf(
         "Academic & Exam" to Icons.Rounded.School,
@@ -1761,15 +1799,6 @@ private fun AddEventDialog(
         "Holiday" to Icons.Rounded.WbSunny,
         "Workshop" to Icons.Rounded.CoPresent,
         "Notice" to Icons.Rounded.Campaign
-    )
-
-    val datePresets = listOf(
-        "Tomorrow" to 1,
-        "In 3 Days" to 3,
-        "This Weekend" to 5,
-        "In 1 Week" to 7,
-        "In 2 Weeks" to 14,
-        "In 1 Month" to 30
     )
 
     val audiences = listOf("All Campus", "Students Only", "Faculty Only")
@@ -1796,7 +1825,7 @@ private fun AddEventDialog(
                 Spacer(Modifier.width(12.dp))
                 Column {
                     Text("Schedule Campus Event", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
-                    Text("Notify students & staff across campus", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Select date from calendar and notify campus", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         },
@@ -1860,34 +1889,110 @@ private fun AddEventDialog(
                     singleLine = true
                 )
 
-                // Date Presets
+                // ── Date Selector ──
                 Column {
-                    Text("When is it taking place?", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Select Event Date *", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(6.dp))
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable { datePickerDialog.show() },
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        border = BorderStroke(1.dp, Primary.copy(alpha = 0.35f))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(Primary.copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.CalendarToday,
+                                        contentDescription = "Pick Date",
+                                        tint = Primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                Spacer(Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = formattedDateText,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+                                    Text(
+                                        text = "Tap to choose from calendar",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Primary.copy(alpha = 0.12f)
+                            ) {
+                                Text(
+                                    text = "Select Date",
+                                    color = Primary,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    // Quick Shortcut Chips
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        datePresets.forEach { (label, days) ->
-                            val isSelected = !showCustomDays && selectedDaysOffset == days
+                        val quickPresets = listOf(
+                            "Today" to 0,
+                            "Tomorrow" to 1,
+                            "In 3 Days" to 3,
+                            "In 1 Week" to 7,
+                            "In 2 Weeks" to 14,
+                            "In 1 Month" to 30
+                        )
+                        quickPresets.forEach { (label, days) ->
                             Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = if (isSelected) Primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(RoundedCornerShape(8.dp))
                                     .clickable {
-                                        showCustomDays = false
-                                        selectedDaysOffset = days
+                                        val cal = Calendar.getInstance().apply {
+                                            add(Calendar.DAY_OF_YEAR, days)
+                                            set(Calendar.HOUR_OF_DAY, 9)
+                                            set(Calendar.MINUTE, 0)
+                                            set(Calendar.SECOND, 0)
+                                        }
+                                        selectedDateMillis = cal.timeInMillis
                                     }
                             ) {
                                 Text(
                                     text = label,
-                                    fontSize = 12.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                                 )
                             }
                         }
@@ -1948,8 +2053,6 @@ private fun AddEventDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val days = selectedDaysOffset
-                    val targetDate = System.currentTimeMillis() + (days * 86400000L)
                     val fullTitle = if (selectedCategory.isNotBlank() && selectedCategory != "Notice") {
                         val categoryPrefix = when (selectedCategory) {
                             "Academic & Exam" -> "Exam"
@@ -1969,7 +2072,7 @@ private fun AddEventDialog(
                         append(desc.trim())
                     }
 
-                    onSubmit(fullTitle, fullDesc, targetDate)
+                    onSubmit(fullTitle, fullDesc, selectedDateMillis)
                 },
                 enabled = !isLoading && title.isNotBlank() && desc.isNotBlank(),
                 shape = RoundedCornerShape(12.dp),
@@ -1993,4 +2096,5 @@ private fun AddEventDialog(
         }
     )
 }
+
 
